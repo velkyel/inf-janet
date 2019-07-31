@@ -18,6 +18,27 @@
   "Run an external janet process (REPL) in an Emacs buffer."
   :group 'janet-mode)
 
+(defvar inf-janet-syntax-table
+  (let ((table (make-syntax-table)))
+
+    ;; Comments start with a '#' and end with a newline
+    (modify-syntax-entry ?# "<" table)
+    (modify-syntax-entry ?\n ">" table)
+
+    ;; For keywords, make the ':' part of the symbol class
+    (modify-syntax-entry ?: "_" table)
+
+    ;; Backtick is a string delimiter
+    (modify-syntax-entry ?` "\"" table)
+
+    ;; Other chars that are allowed in symbols
+    (modify-syntax-entry ?? "_" table)
+    (modify-syntax-entry ?! "_" table)
+    (modify-syntax-entry ?. "_" table)
+    (modify-syntax-entry ?@ "_" table)
+
+    table))
+
 (defcustom inf-janet-prompt-read-only t
   "If non-nil, the prompt will be read-only.
 
@@ -65,7 +86,7 @@ The following commands are available:
   :lighter "" :keymap inf-janet-minor-mode-map
   nil)
 
-(defcustom inf-janet-program "flisp"
+(defcustom inf-janet-program "janet"
   "The command used to start an inferior janet process in `inf-janet-mode'.
 
 Alternative you can specify a TCP connection cons pair, instead
@@ -99,6 +120,8 @@ often connecting to a remote REPL process."
 (put 'inf-janet-mode 'mode-class 'special)
 
 (define-derived-mode inf-janet-mode comint-mode "Inferior janet"
+  :syntax-table inf-janet-syntax-table
+  (setq-local font-lock-defaults '(janet-highlights))
   (setq comint-prompt-regexp inf-janet-prompt)
   (setq mode-line-process '(":%s"))
   ;; (scheme-mode-variables)
@@ -288,4 +311,3 @@ See variable `inf-janet-buffer'."
         (error "No janet subprocess; see variable `inf-janet-buffer'"))))
 
 (provide 'inf-janet)
-
