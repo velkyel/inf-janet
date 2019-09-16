@@ -288,4 +288,3 @@ See variable `inf-janet-buffer'."
         (error "No janet subprocess; see variable `inf-janet-buffer'"))))
 
 (provide 'inf-janet)
-
