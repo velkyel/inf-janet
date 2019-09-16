@@ -160,7 +160,7 @@ Fallback to `default-directory.' if not within a project."
   (interactive (list (if current-prefix-arg
                          (read-string "Run janet: " inf-janet-program)
                        inf-janet-program)))
-  (if (not (comint-check-proc "*inf-janet*"))
+  (if (not (comint-check-proc inf-janet-buffer))
       ;; run the new process in the project's root when in a project folder
       (let ((default-directory (inf-janet-project-root))
             (cmdlist (if (consp cmd)
@@ -170,7 +170,7 @@ Fallback to `default-directory.' if not within a project."
                            "inf-janet" (car cmdlist) nil (cdr cmdlist)))
         (inf-janet-mode)))
   (setq inf-janet-buffer "*inf-janet*")
-  (pop-to-buffer-same-window "*inf-janet*"))
+  (pop-to-buffer-same-window inf-janet-buffer))
 
 ;;;###autoload
 (defalias 'run-janet 'inf-janet)
