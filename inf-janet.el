@@ -203,7 +203,7 @@ Fallback to `default-directory.' if not within a project."
   ;; replace multiple newlines at the end of the region by a single one
   ;; or add one if there was no newline
   (let ((str (replace-regexp-in-string
-              "[\n]*\\'" "\n"
+              "[\n]*\\'" "\n\n"
               (buffer-substring-no-properties start end))))
     (comint-send-string (inf-janet-proc) str))
   (if and-go (inf-janet-switch-to-repl t)))
