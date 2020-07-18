@@ -195,7 +195,7 @@ Fallback to `default-directory.' if not within a project."
   (display-buffer inf-janet-buffer '((display-buffer-below-selected display-buffer-at-bottom)
                                      (inhibit-same-window . t)
                                      (inhibit-switch-frame . t)
-                                     (window-height . fit-window-to-buffer)))
+                                     (window-height . fit-window-to-buffer))))
 
 ;;;###autoload
 (defalias 'run-janet 'inf-janet)
