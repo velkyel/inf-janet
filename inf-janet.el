@@ -192,10 +192,7 @@ Fallback to `default-directory.' if not within a project."
                            "inf-janet" (car cmdlist) nil (cdr cmdlist)))
         (inf-janet-mode)))
   (setq inf-janet-buffer "*inf-janet*")
-  (display-buffer inf-janet-buffer '((display-buffer-below-selected display-buffer-at-bottom)
-                                     (inhibit-same-window . t)
-                                     (inhibit-switch-frame . t)
-                                     (window-height . fit-window-to-buffer))))
+  (display-buffer inf-janet-buffer))
 
 ;;;###autoload
 (defalias 'run-janet 'inf-janet)
