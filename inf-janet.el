@@ -165,7 +165,8 @@ often connecting to a remote REPL process."
   "Retrieve the root directory of a project if available.
 
 Fallback to `default-directory.' if not within a project."
-  (or (car (remove nil
+  (or (when (functionp 'projectile-project-root) (projectile-project-root))
+      (car (remove nil
                    (mapcar (lambda
                              (file)
                              (locate-dominating-file default-directory file))
