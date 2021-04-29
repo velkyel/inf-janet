@@ -12,6 +12,9 @@
 
 (require 'comint)
 (require 'janet-mode)
+(require 'rx)
+(require 's)
+(require 'dash)
 
 (defgroup inf-janet nil
   "Run an external janet process (REPL) in an Emacs buffer."
@@ -111,6 +114,8 @@ often connecting to a remote REPL process."
   :type 'regexp
   :group 'inf-janet)
 
+(defvar inf-janet-last-output nil)
+
 (defvar inf-janet-buffer nil)
 
 (defvar inf-janet-mode-hook '()
@@ -151,11 +156,20 @@ often connecting to a remote REPL process."
 
 (defun inf-janet-preoutput-filter (str)
   "Preprocess the output STR from interactive commands."
-  (cond
-   ((string-prefix-p "inf-janet-" (symbol-name (or this-command last-command)))
-    ;; Remove subprompts and prepend a newline to the output string
-    (inf-janet-chomp (concat "\n" (inf-janet-remove-subprompts str))))
-   (t str)))
+  ;; Capture output as a list of strings, the first item will be
+  ;; printed output (if any) and the second the return value. Matching
+  ;; on ANSI escape codes may not be reliable if the printed output
+  ;; contains them.
+  (setq inf-janet-last-output
+        (let ((re (rx control "[" (+ digit) "m" (group (+ (not control))))))
+          (mapcar (-partial 'nth 1) (s-match-strings-all re str))))
+
+  ;; (cond
+  ;;  ((string-prefix-p "inf-janet-" (symbol-name (or this-command last-command)))
+  ;;   ;; Remove subprompts and prepend a newline to the output string
+  ;;   (inf-janet-chomp (concat "\n" (inf-janet-remove-subprompts str))))
+  ;;  (t str))
+  str)
 
 (defvar inf-janet-project-root-files    ;; TODO
   '("_darcs")
@@ -202,14 +216,23 @@ Fallback to `default-directory.' if not within a project."
   (interactive "r\nP")
   ;; replace multiple newlines at the end of the region by a single one
   ;; or add one if there was no newline
-  (let ((str (replace-regexp-in-string
-              "[\n]*\\'" "\n\n"
-              (buffer-substring-no-properties start end))))
-    (comint-send-string (inf-janet-proc) str))
+  (comint-simple-send
+   (inf-janet-proc)
+   (string-trim (buffer-substring-no-properties start end)))
   (if and-go (inf-janet-switch-to-repl t)))
 
-(defun inf-janet-eval-string (code)
-  (comint-send-string (inf-janet-proc) (concat code "\n")))
+(defun inf-janet-eval-string (s)
+  (let ((p (inf-janet-proc)))
+    (with-current-buffer inf-janet-buffer
+      (comint-simple-send p s)
+      (accept-process-output p)
+      inf-janet-last-output)))
+
+(defun inf-janet-eval-output (s)
+  (car (inf-janet-eval-string s)))
+
+(defun inf-janet-eval-return (s)
+  (-last-item (inf-janet-eval-string s)))
 
 (defun inf-janet-eval-defun (&optional and-go)
   (interactive "P")
