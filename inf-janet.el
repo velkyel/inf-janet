@@ -88,7 +88,7 @@ The following commands are available:
   :lighter "" :keymap inf-janet-minor-mode-map
   nil)
 
-(defcustom inf-janet-program "janet"
+(defcustom inf-janet-program "janet -s"
   "The command used to start an inferior janet process in `inf-janet-mode'.
 
 Alternative you can specify a TCP connection cons pair, instead
@@ -96,6 +96,7 @@ of command, consisting of a host and port
 number (e.g. (\"localhost\" . 5555)).  That's useful if you're
 often connecting to a remote REPL process."
   :type '(choice (string)
+                 (repeat string)
                  (cons string integer))
   :group 'inf-janet)
 
@@ -195,17 +196,20 @@ Fallback to `default-directory.' if not within a project."
 ;;;###autoload
 (defun inf-janet (cmd)
   (interactive (list (if current-prefix-arg
-                         (read-string "Run janet: " inf-janet-program)
+                         ;; only a string is probably useful here
+                         (read-string "Run janet: " (if (stringp inf-janet-program)
+                                                        inf-janet-program
+                                                      (eval (car (get 'inf-janet-program 'standard-value)))))
                        inf-janet-program)))
   (if (not (comint-check-proc inf-janet-buffer))
       ;; run the new process in the project's root when in a project folder
       (let ((default-directory (inf-janet-project-root))
-            (cmdlist (if (consp cmd)
-                         (list cmd)
-                       (split-string cmd))))
-        (set-buffer (apply #'make-comint
-                           "inf-janet" (car cmdlist) nil (cdr cmdlist)))
-        (inf-janet-mode)))
+            (cmdlist (cond ((listp cmd) cmd)
+                           ((consp cmd) (list cmd))
+                           (t (split-string cmd)))))
+        (with-current-buffer (apply #'make-comint
+                                    "inf-janet" (car cmdlist) nil (cdr cmdlist))
+          (inf-janet-mode))))
   (setq inf-janet-buffer "*inf-janet*")
   (display-buffer inf-janet-buffer))
 
