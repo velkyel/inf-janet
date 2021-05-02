@@ -110,12 +110,12 @@ often connecting to a remote REPL process."
   :type 'regexp
   :group 'inf-janet)
 
-(defcustom inf-janet-subprompt " *#_=> *"
+(defcustom inf-janet-subprompt (rx "repl:" (+ digit) ":(" (opt "`") "> ")
   "Regexp to recognize subprompts in the Inferior janet mode."
   :type 'regexp
   :group 'inf-janet)
 
-(defvar inf-janet-last-output nil)
+(defvar inf-janet-filter-subprompts nil)
 
 (defvar inf-janet-buffer nil)
 
@@ -161,16 +161,10 @@ often connecting to a remote REPL process."
   ;; printed output (if any) and the second the return value. Matching
   ;; on ANSI escape codes may not be reliable if the printed output
   ;; contains them.
-  (setq inf-janet-last-output
-        (let ((re (rx control "[" (+ digit) "m" (group (+ (not control))))))
-          (mapcar (-partial 'nth 1) (s-match-strings-all re str))))
-
-  ;; (cond
-  ;;  ((string-prefix-p "inf-janet-" (symbol-name (or this-command last-command)))
-  ;;   ;; Remove subprompts and prepend a newline to the output string
-  ;;   (inf-janet-chomp (concat "\n" (inf-janet-remove-subprompts str))))
-  ;;  (t str))
-  str)
+  (if (or inf-janet-filter-subprompts
+          (string-prefix-p "inf-janet-" (symbol-name (or this-command last-command))))
+      (inf-janet-remove-subprompts str)
+    str))
 
 (defvar inf-janet-project-root-files    ;; TODO
   '("_darcs")
@@ -226,17 +220,34 @@ Fallback to `default-directory.' if not within a project."
   (if and-go (inf-janet-switch-to-repl t)))
 
 (defun inf-janet-eval-string (s)
-  (let ((p (inf-janet-proc)))
+  "Evaluate a string and return a cons pair of the output and return value."
+  (when-let (s ;; don't eval nil
+             (inf-janet-filter-subprompts t)
+             ;; start process if not running?
+             (p (inf-janet-proc)))
     (with-current-buffer inf-janet-buffer
-      (comint-simple-send p s)
-      (accept-process-output p)
-      inf-janet-last-output)))
+      (let ((start (marker-position (cdr comint-last-prompt))))
+        (comint-simple-send p s)
+        (accept-process-output p)
+        (when-let ((end (save-excursion
+                          ;; skip prompt and back one
+                          (goto-char (point-max))
+                          (forward-line 0)
+                          (backward-char)
+                          (point)))
+                   (res (buffer-substring-no-properties start end))
+                   ;; the last line is the result, everything else
+                   ;; is output - if there is an error it will be
+                   ;; interpreted as the result
+                   (m (string-match (rx (group (* (* nonl) "\n")) (group (* nonl)) eos) res)))
+          (cons (match-string 1 res)
+                (match-string 2 res)))))))
 
 (defun inf-janet-eval-output (s)
   (car (inf-janet-eval-string s)))
 
 (defun inf-janet-eval-return (s)
-  (-last-item (inf-janet-eval-string s)))
+  (cdr (inf-janet-eval-string s)))
 
 (defun inf-janet-eval-defun (&optional and-go)
   (interactive "P")
