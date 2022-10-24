@@ -210,6 +210,13 @@ Fallback to `default-directory.' if not within a project."
 ;;;###autoload
 (defalias 'run-janet 'inf-janet)
 
+;;;###autoload
+(defun inf-janet-connect (host port)
+	"Connect to janet repl over net with HOST:PORT."
+	(interactive (list (read-string "Host: " "127.0.0.1")
+					   (read-number "Port: " 8001)))
+	(run-janet (cons host port)))
+
 (defun inf-janet-eval-region (start end &optional and-go)
   (interactive "r\nP")
   ;; replace multiple newlines at the end of the region by a single one
